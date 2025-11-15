@@ -36,9 +36,10 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Install production dependencies for backend
-COPY --from=backend-builder /app/backend/package*.json ./
-RUN npm ci --only=production --prefix /app/backend || true
+# Copy backend package files (including package-lock.json if it exists)
+COPY --from=backend-builder /app/backend/package*.json ./backend/
+# Install production dependencies for backend (skip if package-lock.json doesn't exist)
+RUN cd backend && (npm ci --only=production || npm install --only=production) || true
 
 # Copy backend
 COPY --from=backend-builder /app/backend ./backend

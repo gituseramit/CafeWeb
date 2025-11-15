@@ -8,10 +8,18 @@ const auditLog = require('../middleware/audit');
 
 const router = express.Router();
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET
-});
+// Initialize Razorpay only if credentials are provided
+let razorpay = null;
+if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+  try {
+    razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET
+    });
+  } catch (error) {
+    console.warn('Razorpay initialization failed:', error.message);
+  }
+}
 
 // Create payment order
 router.post('/create', authenticate, [
@@ -19,6 +27,12 @@ router.post('/create', authenticate, [
   body('amount').isFloat({ min: 1 }).withMessage('Valid amount required')
 ], async (req, res, next) => {
   try {
+    if (!razorpay) {
+      return res.status(503).json({ 
+        error: 'Payment gateway not configured. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET environment variables.' 
+      });
+    }
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
@@ -87,6 +101,12 @@ router.post('/verify', [
   body('razorpay_signature').notEmpty()
 ], async (req, res, next) => {
   try {
+    if (!process.env.RAZORPAY_KEY_SECRET) {
+      return res.status(503).json({ 
+        error: 'Payment gateway not configured. Please set RAZORPAY_KEY_SECRET environment variable.' 
+      });
+    }
+
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
     const text = `${razorpay_order_id}|${razorpay_payment_id}`;
@@ -132,9 +152,15 @@ router.post('/verify', [
 // Razorpay webhook handler
 router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
-    const signature = req.headers['x-razorpay-signature'];
     const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_KEY_SECRET;
+    
+    if (!webhookSecret) {
+      return res.status(503).json({ 
+        error: 'Payment gateway not configured. Please set RAZORPAY_KEY_SECRET environment variable.' 
+      });
+    }
 
+    const signature = req.headers['x-razorpay-signature'];
     const generatedSignature = crypto
       .createHmac('sha256', webhookSecret)
       .update(JSON.stringify(req.body))
