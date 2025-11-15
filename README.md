@@ -42,6 +42,20 @@ cyber-cafe/
 └── docker-compose.yml
 ```
 
+## 🚀 Deployment Options
+
+**⚠️ Important:** This is a full-stack app with PostgreSQL. Vercel has limitations for this setup.
+
+### Recommended Platforms:
+1. **Render.com** (Easiest) - See `DEPLOYMENT_RENDER.md`
+2. **Railway.app** - Similar to Render, great free tier
+3. **DigitalOcean App Platform** - Good for production
+4. **Docker on VPS** - Full control
+
+### Vercel Deployment:
+- Frontend only: ✅ Works great
+- Full stack: ⚠️ Requires significant changes (see `DEPLOYMENT_VERCEL.md`)
+
 ## Quick Start
 
 ### Prerequisites
