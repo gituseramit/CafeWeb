@@ -17,13 +17,15 @@ FROM node:18-alpine AS frontend-builder
 
 WORKDIR /app/frontend
 
-# Copy frontend package files
+# Copy frontend package files and config files first (for better caching)
 COPY frontend/package*.json ./
+COPY frontend/postcss.config.js ./
+COPY frontend/tailwind.config.js ./
 
 # Install frontend dependencies
 RUN npm ci
 
-# Copy frontend code
+# Copy rest of frontend code
 COPY frontend/ ./
 
 # Build frontend
